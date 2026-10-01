@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dsh-misaka-background fade probe (delayed mount)</title>
+    <style>
+      :root { --dsw-alias-bg-base: #f7f8fc; font-family: system-ui, sans-serif; }
+      body { margin: 0; background: var(--dsw-alias-bg-base); }
+      #root { height: 400px; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <div data-composer-card style="position: relative; margin: 40px; padding: 14px; border-radius: 16px; background: #fff">hello</div>
+    </div>
+    <div id="row-host" style="max-width: 720px; padding: 20px"></div>
+    <script>
+      // Same minimal shell stand-in as probe.html, but the plugin is applied
+      // only after a delay so a document-start opacity sampler can be attached
+      // before the wallpaper's fade begins. That makes the fade measurement
+      // deterministic instead of racing page load.
+      window.__probeHooks = { state: {}, effects: [] };
+      window.React = {
+        createElement(type, props, ...children) {
+          if (typeof type === 'function') return type({ ...(props || {}), children });
+          if (props && props.children !== undefined) children = [].concat(props.children);
+          return { type, props: props || {}, children };
+        },
+        useState(initial) {
+          const key = 'h' + Object.keys(window.__probeHooks.state).length;
+          if (!(key in window.__probeHooks.state)) {
+            window.__probeHooks.state[key] = typeof initial === 'function' ? initial() : initial;
+          }
+          return [window.__probeHooks.state[key], (next) => { window.__probeHooks.state[key] = next; }];
+        },
+        useEffect(body) { window.__probeHooks.effects.push(body()); },
+        useMemo(factory) { return factory(); },
+        useSyncExternalStore(subscribe, read) { return read(); }
+      };
+      window.__ModuleLoader__ = { load(entry) { window.__probeEntry = entry; } };
+      window.__mountRow = function mountRow(tree) {
+        const host = document.getElementById('row-host');
+        host.innerHTML = '';
+        render(tree, host);
+        function render(node, parent) {
+          if (node === null || node === undefined || node === false) return;
+          if (Array.isArray(node)) { node.forEach((child) => render(child, parent)); return; }
+          if (typeof node !== 'object') { parent.appendChild(document.createTextNode(String(node))); return; }
+          const el = document.createElement(node.type);
+          for (const [key, value] of Object.entries(node.props || {})) {
+            if (key === 'children') continue;
+            if (key === 'style') { for (const [k, v] of Object.entries(value)) el.style.setProperty(k, v); continue; }
+            if (key.startsWith('on') && typeof value === 'function') { el.addEventListener(key.slice(2).toLowerCase(), value); continue; }
+            if (key === 'className') { el.setAttribute('class', String(value)); continue; }
+            if (value === undefined || value === null || value === false) continue;
+            el.setAttribute(key, String(value));
+          }
+          render(node.children, el);
+          parent.appendChild(el);
+        }
+      };
+      window.__probe = { ready: false, appliedAt: null, error: null };
+      window.__labels = { title: 't', description: 'd', enable: 'On', disable: 'Off', overlay: 'Scrim', wallpaperOpacity: 'Wallpaper', wallpaperBlur: 'Wallpaper blur', glassBlurLabel: 'Glass blur', intensity: 'Art intensity', seed: 'Repaint', glass: 'Frosted', on: 'On', off: 'Off', imageLabel: 'URL', imagePlaceholder: 'url', apply: 'Apply', clear: 'Use built-in', reset: 'Reset all', note: 'note' };
+    </script>
+    <script src="../lib/client.js"></script>
+    <script>
+      setTimeout(() => {
+        try {
+          const exported = window.__probeEntry.factory((id) => {
+            if (id === 'react') return window.React;
+            throw new Error('unexpected require: ' + id);
+          });
+          const ctx = {
+            effect: (cb) => { cb(); return () => {}; },
+            locale: { register: () => {} },
+            slots: {
+              inject: (name, cb) => cb(),
+              register: (options, component) => { window.__probe.component = component; return () => {}; }
+            }
+          };
+          window.__probe.appliedAt = performance.now();
+          exported.apply(ctx);
+          window.__mountRow(window.__probe.component({ t: (k) => window.__labels[k] || k }));
+          window.__probe.ready = true;
+        } catch (error) {
+          window.__probe.error = error && error.stack ? error.stack : String(error);
+        }
+      }, 300);
+    </script>
+  </body>
+</html>

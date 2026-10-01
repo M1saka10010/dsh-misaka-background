@@ -1,0 +1,6 @@
+# dsh-misaka-background bundle patch: inserts its client plugin row into the
+# web plugin roster. Install the bundle with
+#   dsh plugin --profile <name> add <path-or-npm-name>
+- insert:
+    - id: dsh-misaka-background
+      name: 'dsh-misaka-background'

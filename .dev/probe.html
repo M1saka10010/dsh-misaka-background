@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>dsh-misaka-background render probe</title>
+    <style>
+      /* Enough of the DSH shell to exercise the plugin's selectors and the
+         official --dsw-* tokens the plugin reads/overrides. */
+      :root {
+        --dsw-alias-label-primary: #0f1115;
+        --dsw-alias-label-secondary: #61666b;
+        --dsw-alias-label-tertiary: #81858c;
+        --dsw-alias-border-l2: rgb(0 0 0 / 12%);
+        --dsw-alias-brand-primary: #4d6bfe;
+        --dsw-alias-interactive-bg: transparent;
+        --dsw-alias-interactive-bg-hover: rgb(0 0 0 / 5%);
+        --dsw-alias-bg-base: #f7f8fc;
+        --dsw-specific-sidebar-fill: #f2f3f8;
+        --dsw-specific-input-major: #ffffff;
+        --dsw-alias-markdown-code-block: #f2f3f8;
+        font-family: system-ui, sans-serif;
+      }
+      body[data-ds-dark-theme] {
+        --dsw-alias-label-primary: #f9fafb;
+        --dsw-alias-label-secondary: #cfd3d6;
+        --dsw-alias-label-tertiary: #adb2b8;
+        --dsw-alias-border-l2: rgb(255 255 255 / 12%);
+        --dsw-alias-interactive-bg-hover: rgb(255 255 255 / 8%);
+        --dsw-alias-bg-base: #0f1115;
+        --dsw-specific-sidebar-fill: #171923;
+        --dsw-specific-input-major: #1c1f29;
+        --dsw-alias-markdown-code-block: #1c1f29;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--dsw-alias-bg-base); color: var(--dsw-alias-label-primary); }
+      /* Fixed shell height: the probe must not reflow when the viewport is
+         resized for a clipped screenshot. */
+      #root { position: relative; display: flex; height: 820px; overflow: hidden; }
+      .shell-sidebar {
+        width: 248px; flex: none; padding: 18px 14px;
+        background: var(--dsw-specific-sidebar-fill);
+        border-right: 1px solid var(--dsw-alias-border-l2);
+      }
+      .shell-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+      .shell-header { height: 52px; display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid var(--dsw-alias-border-l2); }
+      .shell-scroll { flex: 1; overflow: auto; padding: 24px 20px 140px; }
+      .shell-composer { position: sticky; bottom: 0; margin: 0 20px 18px; }
+      [data-composer-card] { position: relative; padding: 14px 16px; border-radius: 16px; background: var(--dsw-specific-input-major); }
+      ._bubble_xyz { max-width: 640px; margin: 0 0 16px; padding: 12px 14px; border-radius: 14px; background: var(--dsw-specific-input-major); }
+      .md-code-block { margin: 0 0 16px; border-radius: 12px; overflow: hidden; background: var(--dsw-alias-markdown-code-block); }
+      .md-code-block pre { margin: 0; padding: 12px 14px; font: 13px/1.6 ui-monospace, monospace; }
+      h1 { font-size: 20px; margin: 0 0 16px; }
+      p { margin: 0 0 12px; line-height: 1.7; color: var(--dsw-alias-label-secondary); }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <aside class="shell-sidebar">
+        <strong>DeepSeek Harness</strong>
+        <p style="margin-top: 10px">sessions…</p>
+      </aside>
+      <div class="shell-main">
+        <div class="shell-header">
+          <strong>Render probe</strong>
+          <button data-theme-toggle style="margin-left:auto">toggle theme</button>
+        </div>
+        <div class="shell-scroll">
+          <h1>Background probe</h1>
+          <div class="_bubble_xyz">
+            These bubbles, the code block and the composer card are the whitelisted
+            frosted surfaces. Text must stay legible over the wallpaper.
+          </div>
+          <div class="md-code-block"><pre>const scrim = 0.3 + 40 / 100; // => 0.7</pre></div>
+        </div>
+        <div class="shell-composer">
+          <div data-composer-card>Ask anything…</div>
+        </div>
+      </div>
+    </div>
+    <div id="row-host" style="max-width: 720px; padding: 0 20px 40px"></div>
+
+    <script>
+      // Minimal React seed the way the shell injects it: createElement plus the
+      // hooks the settings row uses, rendering to a real DOM node.
+      window.__probeHooks = { state: {}, effects: [] };
+      // Render bookkeeping. `__probeMountCount` limits effects to the first
+      // render (like a mount in React), and re-renders are deferred to a
+      // microtask so a setter called from inside an effect cannot re-enter the
+      // render that is still running.
+      window.__probeHookIndex = 0;
+      window.__probeMountCount = 0;
+      window.__probeRerenderScheduled = false;
+      window.React = {
+        createElement(type, props, ...children) {
+          if (typeof type === 'function') return type({ ...(props || {}), children });
+          if (props && props.children !== undefined) children = [].concat(props.children);
+          return { type, props: props || {}, children };
+        },
+        useState(initial) {
+          const key = 'h' + (window.__probeHookIndex++);
+          if (!(key in window.__probeHooks.state)) {
+            window.__probeHooks.state[key] = typeof initial === 'function' ? initial() : initial;
+          }
+          return [window.__probeHooks.state[key], (next) => {
+            window.__probeHooks.state[key] = typeof next === 'function'
+              ? next(window.__probeHooks.state[key])
+              : next;
+            // A real setState schedules a re-render; the probe re-mounts the row
+            // so state-driven paths (like the preview's image-error fallback)
+            // are observable instead of silently doing nothing.
+            window.__scheduleRerender();
+          }];
+        },
+        useEffect(body) {
+          if (window.__probeMountCount > 1) return;
+          window.__probeHooks.effects.push(body());
+        },
+        useMemo(factory) { return factory(); },
+        useSyncExternalStore(subscribe, read) { return read(); }
+      };
+      window.__ModuleLoader__ = { load(entry) { window.__probeEntry = entry; } };
+
+      /** Mount a descriptor tree into #row-host. */
+      window.__mountRow = function mountRow(tree) {
+        const host = document.getElementById('row-host');
+        host.innerHTML = '';
+        render(tree, host);
+        function render(node, parent) {
+          if (node === null || node === undefined || node === false) return;
+          if (Array.isArray(node)) { node.forEach((child) => render(child, parent)); return; }
+          if (typeof node !== 'object') { parent.appendChild(document.createTextNode(String(node))); return; }
+          const el = document.createElement(node.type);
+          for (const [key, value] of Object.entries(node.props || {})) {
+            if (key === 'children') continue;
+            if (key === 'style') { for (const [k, v] of Object.entries(value)) el.style.setProperty(k, v); continue; }
+            if (key.startsWith('on') && typeof value === 'function') {
+              el.addEventListener(key.slice(2).toLowerCase(), value);
+              continue;
+            }
+            if (key === 'className') { el.setAttribute('class', String(value)); continue; }
+            if (value === undefined || value === null || value === false) continue;
+            el.setAttribute(key, String(value));
+          }
+          render(node.children, el);
+          parent.appendChild(el);
+        }
+      };
+
+      /** Invoke the row component with a fresh hook index, then mount it. */
+      window.__renderRow = function renderRow() {
+        window.__probeHookIndex = 0;
+        window.__probeMountCount += 1;
+        window.__mountRow(window.__probe.component({ t: (k) => window.__labels[k] || k }));
+      };
+
+      /** Coalesced, deferred re-render. */
+      window.__scheduleRerender = function scheduleRerender() {
+        if (window.__probeRerenderScheduled) return;
+        window.__probeRerenderScheduled = true;
+        queueMicrotask(() => {
+          window.__probeRerenderScheduled = false;
+          if (window.__probe && window.__probe.component) window.__renderRow();
+        });
+      };
+
+      window.__probe = { ready: false, error: null };
+      // Stands in for the locale dictionaries so the row screenshot is readable.
+      window.__labels = {
+        title: 'Reference background',
+        description: 'The blog.misaka.ren treatment: fixed wallpaper, theme-aware scrim, 480ms fade-in and frosted-glass panels.',
+        enable: 'On',
+        disable: 'Off',
+        overlay: 'Scrim',
+        wallpaperOpacity: 'Wallpaper',
+        wallpaperBlur: 'Wallpaper blur',
+        intensity: 'Art intensity',
+        seed: 'Repaint',
+        glass: 'Frosted',
+        on: 'On',
+        off: 'Off',
+        imageLabel: 'Image URL',
+        imagePlaceholder: 'Paste an https:// image link, press Enter',
+        apply: 'Apply',
+        clear: 'Use built-in',
+        reset: 'Reset all',
+        note: 'The built-in wallpaper is drawn locally; no network access is needed.'
+      };
+      window.addEventListener('error', (event) => { window.__probe.error = String(event.message); });
+    </script>
+    <script src="../lib/client.js"></script>
+    <script>
+      try {
+        const entry = window.__probeEntry;
+        if (!entry) throw new Error('bundle did not register with __ModuleLoader__');
+        const exported = entry.factory((id) => {
+          if (id === 'react') return window.React;
+          throw new Error('unexpected require: ' + id);
+        });
+        const ctx = {
+          effect: (cb) => { cb(); return () => {}; },
+          locale: { register: () => {} },
+          slots: {
+            inject: (name, cb) => cb(),
+            register: (options, component) => {
+              window.__probe.options = options;
+              window.__probe.component = component;
+              return () => {};
+            }
+          }
+        };
+        exported.apply(ctx);
+        window.__renderRow();
+        window.__probe.ready = true;
+      } catch (error) {
+        window.__probe.error = error && error.stack ? error.stack : String(error);
+      }
+    </script>
+  </body>
+</html>

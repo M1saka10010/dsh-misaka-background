@@ -1,0 +1,58 @@
+{
+  "name": "dsh-misaka-background",
+  "version": "0.1.0",
+  "description": "blog.misaka.ren-style backdrop for the DeepSeek Harness web GUI: a procedurally drawn abstract wallpaper, a theme-aware readability scrim, a 480ms fade-in and whitelisted frosted-glass surfaces.",
+  "type": "module",
+  "license": "MIT",
+  "author": "M1saka",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/M1saka10010/dsh-misaka-background.git"
+  },
+  "homepage": "https://github.com/M1saka10010/dsh-misaka-background#readme",
+  "bugs": {
+    "url": "https://github.com/M1saka10010/dsh-misaka-background/issues"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "background",
+    "wallpaper",
+    "theme",
+    "web-ui"
+  ],
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "scripts": {
+    "test": "node .dev/contract.test.mjs && node .dev/artwork-retry.test.mjs",
+    "test:all": "node .dev/run-all.mjs",
+    "check": "node --check lib/client.js && node --check lib/index.js"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "config.example.json",
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "inject": [
+        "@deepseek-ai/dsh-client-locale"
+      ],
+      "platform": "web"
+    }
+  }
+}

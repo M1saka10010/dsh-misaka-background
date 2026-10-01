@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The plugin ships no dependencies; these are the harnesses' only.
+      - name: Install harness dependencies
+        working-directory: .dev
+        run: npm install --no-audit --no-fund
+
+      - name: Syntax-check both halves
+        run: |
+          node --check lib/client.js
+          node --check lib/index.js
+
+      # The browser harnesses need a local Chrome, so CI runs the DOM-level
+      # suites: the full contract in jsdom, and the artwork-retry regression.
+      - name: Run the browser-free harnesses
+        working-directory: .dev
+        run: npm test

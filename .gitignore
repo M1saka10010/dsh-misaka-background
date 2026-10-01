@@ -1,0 +1,15 @@
+# The plugin itself has no dependencies; this belongs to the .dev harnesses.
+node_modules/
+
+# Harness output.
+.dev/shots/
+.dev/*.log
+.dev/*.tmp
+.dev/*-out.txt
+
+# A local configuration for YOUR install. Commit config.example.json instead.
+config.json
+
+# OS noise.
+.DS_Store
+Thumbs.db

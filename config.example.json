@@ -1,0 +1,12 @@
+{
+  "$comment": "Copy this to config.json to configure the plugin without the UI. Every key is optional; keys you omit keep the shipped default. The settings row overrides these per field, and \"Reset all\" hands control back to this file.",
+  "enabled": true,
+  "imageUrl": "https://example.com/your-artwork.png",
+  "overlay": 40,
+  "wallpaperOpacity": 100,
+  "wallpaperBlur": 0,
+  "glass": true,
+  "glassBlur": 18,
+  "artSeed": 7,
+  "artIntensity": 100
+}

@@ -1,0 +1,17 @@
+{
+  "name": "dsh-misaka-background-dev",
+  "private": true,
+  "description": "Development harnesses for dsh-misaka-background: DOM-level suites in jsdom plus real-Chromium probes for the fade, the failure paths and the plugin configuration.",
+  "type": "module",
+  "scripts": {
+    "test": "node contract.test.mjs && node artwork-retry.test.mjs",
+    "test:all": "node run-all.mjs",
+    "probe": "node render-probe.mjs",
+    "config:e2e": "node config-e2e.mjs",
+    "config:file:e2e": "node config-file-e2e.mjs"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0",
+    "puppeteer-core": "^23.11.1"
+  }
+}
